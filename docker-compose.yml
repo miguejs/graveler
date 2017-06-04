@@ -1,0 +1,52 @@
+version: '2'
+
+volumes:
+  postgres-data:
+    driver: local
+  gems:
+    driver: local
+
+services:
+  db:
+    image: mdillon/postgis:9.5
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/backups:/db/backups
+    environment:
+      POSTGRES_PASSWORD: P4Ssw0rD!
+
+  app: &app
+    build:
+      context: .
+      dockerfile: dev.Dockerfile
+    working_dir: /code
+    volumes:
+      - .:/code
+      - gems:/usr/local/bundle
+    stdin_open: true
+    tty: true
+    links:
+      - db
+
+  web:
+    <<: *app
+    command: rails server -b 0.0.0.0 -p 3000 -P /tmp/rails.pid
+    ports:
+      - 3000:3000
+    environment:
+      DATABASE_URL: "postgres://postgres:P4Ssw0rD!@db:5432/graveler_dev"
+      RAILS_ENV: development
+      RACK_ENV: development
+    env_file:
+      - dev.env
+
+  test:
+    <<: *app
+    environment:
+      DATABASE_URL: "postgres://postgres:P4Ssw0rD!@db:5432/graveler_dev"
+      RAILS_ENV: test
+      RACK_ENV: test
+    env_file:
+      - test.env
