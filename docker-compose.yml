@@ -8,7 +8,7 @@ volumes:
 
 services:
   db:
-    image: mdillon/postgis:9.5
+    image: postgres:9.5-alpine
     ports:
       - 5432:5432
     volumes:
@@ -21,9 +21,9 @@ services:
     build:
       context: .
       dockerfile: dev.Dockerfile
-    working_dir: /code
+    working_dir: /usr/src/app
     volumes:
-      - .:/code
+      - .:/usr/src/app
       - gems:/usr/local/bundle
     stdin_open: true
     tty: true
@@ -36,11 +36,14 @@ services:
     ports:
       - 3000:3000
     environment:
+      PATH: /usr/src/app/bin:/usr/local/bundle/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       DATABASE_URL: "postgres://postgres:P4Ssw0rD!@db:5432/graveler_dev"
       RAILS_ENV: development
       RACK_ENV: development
     env_file:
       - dev.env
+    links:
+      - webpack
 
   test:
     <<: *app
@@ -50,3 +53,15 @@ services:
       RACK_ENV: test
     env_file:
       - test.env
+
+  webpack:
+    <<: *app
+    command: webpack-dev-server --host 0.0.0.0 --inline true --hot false
+    ports:
+      - 8080:8080
+    environment:
+      PATH: /usr/src/app/bin:/usr/local/bundle/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      RAILS_ENV: development
+      RACK_ENV: development
+    env_file:
+      - dev.env
